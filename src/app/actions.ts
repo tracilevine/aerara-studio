@@ -3,8 +3,6 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient, getAdvisor } from "@/lib/supabase/server";
-import { fromApi, AERARA_FORM_ID } from "@/lib/intake";
-import { ingestSubmission } from "@/lib/ingest";
 import { generateAssessment, AUDIT_CATEGORIES, type AssessmentContent } from "@/lib/assessment";
 import { computeChart } from "@/lib/chart";
 import { buildDocument, type DocType } from "@/lib/documents";
@@ -134,52 +132,6 @@ export async function deleteClient(clientId: string, confirmName: string) {
 }
 
 // ───────── intake ─────────
-export type ImportResult = { created: number; duplicates: number; skipped: number; errors: string[] };
-
-/** Pull submissions with the Tally API (needs TALLY_API_KEY). */
-export async function importFromTally(formId: string = AERARA_FORM_ID): Promise<ImportResult> {
-  const { supabase } = await db();
-  const key = process.env.TALLY_API_KEY;
-  if (!key) return { created: 0, duplicates: 0, skipped: 0, errors: ["TALLY_API_KEY is not set. Use the paste import below, or add the key."] };
-  const out: ImportResult = { created: 0, duplicates: 0, skipped: 0, errors: [] };
-  let page = 1;
-  for (;;) {
-    const res = await fetch(`https://api.tally.so/forms/${formId}/submissions?page=${page}&filter=completed`, {
-      headers: { authorization: `Bearer ${key}` }, cache: "no-store",
-    });
-    if (!res.ok) { out.errors.push(`Tally API returned ${res.status}. Nothing further was imported.`); break; }
-    const json = await res.json();
-    for (const s of json.submissions ?? []) {
-      try {
-        const r = await ingestSubmission(supabase, fromApi(json.questions ?? [], s), formId, "tally_api");
-        if (r.status === "created") out.created++; else if (r.status === "duplicate") out.duplicates++; else out.skipped++;
-      } catch (e) { out.errors.push(e instanceof Error ? e.message : String(e)); }
-    }
-    if (!json.hasMore) break;
-    page++;
-  }
-  revalidatePath("/", "layout");
-  return out;
-}
-
-/** Fallback: paste a Tally export/API JSON ({ questions, submissions }). */
-export async function importPasted(text: string): Promise<ImportResult> {
-  const { supabase } = await db();
-  const out: ImportResult = { created: 0, duplicates: 0, skipped: 0, errors: [] };
-  let json: { questions?: { id: string; label: string }[]; submissions?: unknown[]; data?: { questions: { id: string; label: string }[]; submissions: unknown[] } };
-  try { json = JSON.parse(text); } catch { return { ...out, errors: ["That is not valid JSON."] }; }
-  const body = json.data ?? json;
-  if (!body.questions || !body.submissions) return { ...out, errors: ["Expected an object with `questions` and `submissions`."] };
-  for (const s of body.submissions as Parameters<typeof fromApi>[1][]) {
-    try {
-      const r = await ingestSubmission(supabase, fromApi(body.questions, s), AERARA_FORM_ID, "manual_import");
-      if (r.status === "created") out.created++; else if (r.status === "duplicate") out.duplicates++; else out.skipped++;
-    } catch (e) { out.errors.push(e instanceof Error ? e.message : String(e)); }
-  }
-  revalidatePath("/", "layout");
-  return out;
-}
-
 export async function markReviewed(submissionId: string, path: string) {
   const { supabase } = await db();
   await supabase.from("intake_submissions").update({ reviewed: true, reviewed_at: new Date().toISOString() }).eq("id", submissionId);

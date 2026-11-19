@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { Section, Status, Empty, fmtDateTime } from "@/components/ui";
-import { ImportPanel } from "./import-panel";
 import { aiConfigured } from "@/lib/ai";
 
 export const dynamic = "force-dynamic";
@@ -47,7 +46,6 @@ export default async function Intakes() {
         )}
       </Section>
 
-      <ImportPanel apiKey={!!process.env.TALLY_API_KEY} />
     </div>
   );
 }
