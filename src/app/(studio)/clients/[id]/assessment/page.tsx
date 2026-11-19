@@ -1,7 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
-import { runAssessment, approveAssessment, applyAssessment, restoreVersion } from "@/app/actions";
+import { createManualAssessment, approveAssessment, applyAssessment, restoreVersion } from "@/app/actions";
 import { SECTION_TITLES, type AssessmentContent } from "@/lib/assessment";
-import { aiConfigured, modelName } from "@/lib/ai";
 import { Section, Status, Empty, Pill, fmtDateTime } from "@/components/ui";
 import { ActionButton } from "@/components/action-button";
 import { SectionEditor } from "./section-editor";
@@ -15,15 +14,15 @@ export default async function Assessment({ params }: { params: Promise<{ id: str
   ]);
   const a = list?.[0];
   const P = `/clients/${id}/assessment`;
-  const gen = (
-    <ActionButton variant={a ? "ghost" : "primary"} action={runAssessment.bind(null, id)}
-      confirm={a ? "Generate a new draft? The current one stays in history." : undefined}>
-      {a ? "Regenerate draft" : "Generate AI assessment"}
+  const create = (
+    <ActionButton variant={a?.content ? "ghost" : "primary"} action={createManualAssessment.bind(null, id)}
+      confirm={a?.content ? "Start a blank assessment? The current assessment stays in history." : undefined}>
+      Start manual assessment
     </ActionButton>
   );
   if (!a) return (
-    <Section title="AI Assessment" action={aiConfigured() ? gen : null}>
-      <Empty>{aiConfigured() ? `No assessment yet. Drafts use ${modelName()} and read only this client’s intake.` : "Add an AI API key to enable drafting."}</Empty>
+    <Section title="Assessment" action={create}>
+      <Empty>No assessment yet.</Empty>
     </Section>
   );
 
@@ -36,26 +35,24 @@ export default async function Assessment({ params }: { params: Promise<{ id: str
       <div className="card flex flex-wrap items-center justify-between gap-4 p-5">
         <div className="flex items-center gap-3 text-sm">
           <Status value={a.status} />
-          <span className="text-ink-soft">{a.generated_by === "ai" ? `AI draft · ${a.model}` : a.generated_by} · {fmtDateTime(a.created_at)}</span>
+          <span className="text-ink-soft">{a.generated_by === "manual" ? "Manual assessment" : "Imported assessment"} · {fmtDateTime(a.created_at)}</span>
         </div>
         <div className="flex flex-wrap gap-2">
           {a.status === "awaiting_review" && <ActionButton variant="primary" action={approveAssessment.bind(null, a.id, P)}>Approve assessment</ActionButton>}
-          {aiConfigured() && gen}
+          {create}
         </div>
       </div>
-      {a.status === "failed" && <p className="card p-4 text-sm text-[#9A4B36]">Generation failed: {a.error}. Nothing was saved from this attempt.</p>}
-      {a.status === "generating" && <p className="card p-4 text-sm">Drafting… refresh in a minute.</p>}
 
       {c && <>
         <p className="text-xs text-ink-soft">Draft for advisor review. Labels in the text distinguish client statements, advisory hypotheses and recommendations. Editing an approved assessment returns it to review.</p>
         {SECTION_TITLES.map(([k, title]) => {
           if (k === "soul" && !priv?.consent_spiritual) return (
-            <Section key={k} title={title}><Empty>Client has not opted in. This section is not generated.</Empty></Section>
+            <Section key={k} title={title}><Empty>Client has not opted in. This section is unavailable.</Empty></Section>
           );
           return (
             <Section key={k} title={title} className={k === "soul" ? "border-soul-border" : ""}>
               <SectionEditor assessmentId={a.id} sectionKey={k} text={c.sections[k] ?? ""} path={P} />
-              {k === "wheelhouse" && c.wheelhouse_lists && (
+              {k === "wheelhouse" && c.wheelhouse_lists && Object.values(c.wheelhouse_lists).some((items) => items.length > 0) && (
                 <div className="mt-5 grid gap-4 md:grid-cols-3">
                   {([["own", "Own and Lead"], ["support", "Support or Simplify"], ["delegate", "Delegate or Automate"]] as const).map(([key, label]) => (
                     <div key={key} className="rounded-xl bg-system-card/60 p-4"><p className="label mb-2">{label}</p><ul className="list-disc space-y-1 pl-4 text-sm">{c.wheelhouse_lists[key].map((x, i) => <li key={i}>{x}</li>)}</ul></div>
@@ -69,7 +66,7 @@ export default async function Assessment({ params }: { params: Promise<{ id: str
         {!!c.open_questions?.length && (
           <Section title="Open questions & inconsistencies"><ul className="list-disc space-y-1 pl-5 text-sm">{c.open_questions.map((q, i) => <li key={i}>{q}</li>)}</ul></Section>
         )}
-        <Section title="Move into the workspace">
+        {a.generated_by !== "manual" && <Section title="Move into the workspace">
           <p className="mb-4 text-sm text-ink-soft">Copies draft findings into the editable tabs. Existing entries are never overwritten; duplicates are skipped.</p>
           <div className="flex flex-wrap gap-2">
             <ActionButton action={applyAssessment.bind(null, a.id, "blueprint")} done={applied}>Blueprint</ActionButton>
@@ -78,7 +75,7 @@ export default async function Assessment({ params }: { params: Promise<{ id: str
             <ActionButton action={applyAssessment.bind(null, a.id, "recommendations")} done={applied}>Recommendations ({c.recommendations?.length ?? 0})</ActionButton>
             <ActionButton action={applyAssessment.bind(null, a.id, "roadmap")} done={applied}>Roadmap ({c.roadmap?.length ?? 0})</ActionButton>
           </div>
-        </Section>
+        </Section>}
       </>}
 
       {(!!versions?.length || (list?.length ?? 0) > 1) && (

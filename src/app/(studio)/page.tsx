@@ -42,7 +42,7 @@ export default async function Today() {
   const myTodos = (tasks.data ?? []).filter((t) => t.owner_type === "advisor" && open(t)).sort(byDue).slice(0, 10);
   const fromClients = (tasks.data ?? []).filter((t) => t.owner_type === "client" && open(t)).sort(byDue);
   const newIntakes = (subs.data ?? []).filter((s) => !s.reviewed);
-  const toReview = (assessments.data ?? []).filter((a) => ["awaiting_review", "failed", "generating"].includes(a.status));
+  const toReview = (assessments.data ?? []).filter((a) => a.status === "awaiting_review");
   const today = new Date().toISOString().slice(0, 10);
 
   return (

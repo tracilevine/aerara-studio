@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { Section, Status, Empty, fmtDateTime } from "@/components/ui";
-import { aiConfigured } from "@/lib/ai";
 
 export const dynamic = "force-dynamic";
 
@@ -9,14 +8,13 @@ export default async function Intakes() {
   const supabase = await createClient();
   const [{ data: subs }, { data: assessments }, { data: clients }] = await Promise.all([
     supabase.from("intake_submissions").select("id,client_id,tally_submission_id,source,submitted_at,reviewed").order("submitted_at", { ascending: false }),
-    supabase.from("assessments").select("id,client_id,status,error,created_at").in("status", ["generating", "awaiting_review", "failed"]).order("created_at", { ascending: false }),
+    supabase.from("assessments").select("id,client_id,status,error,created_at").eq("status", "awaiting_review").order("created_at", { ascending: false }),
     supabase.from("clients").select("id,name,business_name"),
   ]);
   const C = new Map((clients ?? []).map((c) => [c.id, c]));
   return (
     <div className="mx-auto max-w-5xl space-y-8">
       <h1 className="font-serif text-4xl">Intakes</h1>
-      {!aiConfigured() && <p className="card border-clay/40 p-4 text-sm">AI drafting is off: no API key is set. Intakes still save; add a key to generate assessments.</p>}
 
       <Section title="Assessments awaiting review">
         {!assessments?.length ? <Empty>Nothing to review.</Empty> : (

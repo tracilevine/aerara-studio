@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient, getAdvisor } from "@/lib/supabase/server";
-import { generateAssessment, AUDIT_CATEGORIES, type AssessmentContent } from "@/lib/assessment";
+import { AUDIT_CATEGORIES, type AssessmentContent } from "@/lib/assessment";
 import { computeChart } from "@/lib/chart";
 import { buildDocument, type DocType } from "@/lib/documents";
 
@@ -149,13 +149,24 @@ export async function saveIntakeNote(submissionId: string, questionId: string, f
 }
 
 // ───────── assessment ─────────
-export async function runAssessment(clientId: string) {
+export async function createManualAssessment(clientId: string) {
   const { supabase } = await db();
-  const { data: sub } = await supabase.from("intake_submissions").select("id").eq("client_id", clientId)
-    .order("submitted_at", { ascending: false }).limit(1).maybeSingle();
-  const r = await generateAssessment(supabase, clientId, sub?.id ?? null);
+  const { data: intake, error: intakeError } = await supabase.from("intake_submissions").select("id")
+    .eq("client_id", clientId).order("submitted_at", { ascending: false, nullsFirst: false }).limit(1).maybeSingle();
+  if (intakeError) return { error: "Couldn’t load the latest intake." };
+
+  const content: AssessmentContent = {
+    sections: { snapshot: "", wheelhouse: "", brand: "", technology: "", soul: null, strategy: "", questions: "" },
+    wheelhouse_lists: { own: [], support: [], delegate: [] },
+    open_questions: [], audit: [], tools: [], recommendations: [], roadmap: [], questions: [],
+  };
+  const { error } = await supabase.from("assessments").insert({
+    client_id: clientId, submission_id: intake?.id ?? null, content,
+    status: "awaiting_review", generated_by: "manual",
+  });
+  if (error) return { error: "Couldn’t create the manual assessment." };
   revalidatePath(`/clients/${clientId}`, "layout");
-  return r;
+  revalidatePath("/");
 }
 
 export async function saveAssessmentSection(id: string, key: string, text: string, path: string) {
