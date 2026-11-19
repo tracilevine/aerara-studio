@@ -376,3 +376,39 @@ export async function deleteDocument(id: string, clientId: string) {
   await supabase.from("documents").delete().eq("id", id);
   redirect(`/clients/${clientId}/documents`);
 }
+
+/** Add a list in one write so an error never saves only some of its items. */
+export async function addClientTodos(clientId: string, form: FormData) {
+  const { supabase } = await db();
+  const titles = String(form.get("titles") ?? "").split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
+  if (!titles.length) return { error: "Enter at least one to-do." };
+  if (titles.length > 50 || titles.some((title) => title.length > 200)) {
+    return { error: "Add up to 50 items at once, with up to 200 characters per item." };
+  }
+
+  const { data: last, error: readError } = await supabase.from("tasks").select("sort_order")
+    .eq("client_id", clientId).order("sort_order", { ascending: false }).limit(1).maybeSingle();
+  if (readError) return { error: "Couldn’t load the client’s tasks." };
+
+  const start = (last?.sort_order ?? 0) + 1;
+  const { error } = await supabase.from("tasks").insert(titles.map((title, index) => ({
+    client_id: clientId, title, phase: "later", sort_order: start + index,
+  })));
+  if (error) return { error: "Couldn’t save the to-dos." };
+  revalidatePath(`/clients/${clientId}`, "layout");
+  revalidatePath("/");
+  return { added: titles.length };
+}
+
+export async function setClientTodoCompleted(clientId: string, taskId: string, completed: boolean) {
+  const { supabase } = await db();
+  let query = supabase.from("tasks").update({
+    status: completed ? "completed" : "not_started",
+    completed_at: completed ? new Date().toISOString() : null,
+  }).eq("client_id", clientId).eq("id", taskId);
+  query = completed ? query.neq("status", "completed") : query.eq("status", "completed");
+  const { error } = await query;
+  if (error) return { error: "Couldn’t update the to-do." };
+  revalidatePath(`/clients/${clientId}`, "layout");
+  revalidatePath("/");
+}

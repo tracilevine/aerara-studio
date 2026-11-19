@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 const TABS = [
   ["", "Overview"], ["intake", "Intake"], ["assessment", "Assessment"], ["blueprint", "Soul & System Blueprint"],
   ["foundations", "Business Foundations"], ["systems", "Systems & Tools"], ["recommendations", "Recommendations"],
-  ["roadmap", "Roadmap"], ["documents", "Documents"], ["activity", "Activity & Notes"],
+  ["todos", "To-dos"], ["roadmap", "Roadmap"], ["documents", "Documents"], ["activity", "Activity & Notes"],
 ];
 
 export function Tabs({ id }: { id: string }) {
