@@ -1,0 +1,49 @@
+@import "tailwindcss";
+
+@theme {
+  --color-ivory: #FFFAF6;
+  --color-lavender: #E4D6E8;
+  --color-blush: #E4D6D2;
+  --color-clay: #C99579;
+  --color-plum: #59445D;
+  --color-mauve: #A77489;
+  --color-clay-dark: #A96F52;
+  --color-soul-card: #F4E9EF;
+  --color-system-card: #F5ECE7;
+  --color-soul-border: #D9C4D4;
+  --color-system-border: #DFC9BD;
+  /* quiet neutrals derived for text/borders on ivory */
+  --color-ink-soft: #7A6A7C;   /* secondary text, 5.1:1 on ivory */
+  --color-line: #EDE4DE;       /* hairline borders */
+  --color-paper: #FFFDFB;      /* card surface */
+  --font-serif: "Cormorant Garamond", Georgia, serif;
+  --font-sans: "Inter Variable", ui-sans-serif, system-ui, sans-serif;
+}
+
+html, body { background: var(--color-ivory); color: var(--color-plum); }
+body { font-family: var(--font-sans); -webkit-font-smoothing: antialiased; }
+
+.brand-gradient { background: linear-gradient(105deg, #F0E5EC 0%, #F7EBE9 25%, #FFF5ED 55%, #FFF6ED 100%); }
+
+.card { background: var(--color-paper); border: 1px solid var(--color-line); border-radius: 14px; }
+.label { font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--color-mauve); font-weight: 600; }
+.btn { display:inline-flex; align-items:center; gap:.4rem; border-radius: 999px; padding: .45rem 1rem; font-size: 14px; font-weight: 500; transition: background .15s, opacity .15s; }
+.btn-primary { background: var(--color-plum); color: var(--color-ivory); }
+.btn-primary:hover { opacity: .9; }
+.btn-ghost { border: 1px solid var(--color-line); color: var(--color-plum); background: transparent; }
+.btn-ghost:hover { background: #fff; }
+.btn:disabled { opacity: .5; cursor: not-allowed; }
+.field { width: 100%; background: transparent; border: 1px solid transparent; border-radius: 8px; padding: .35rem .5rem; color: var(--color-plum); }
+.field:hover { border-color: var(--color-line); }
+.field:focus { outline: none; border-color: var(--color-clay); background: #fff; }
+.input { width: 100%; background: #fff; border: 1px solid var(--color-line); border-radius: 10px; padding: .55rem .75rem; }
+.input:focus { outline: none; border-color: var(--color-clay); }
+
+/* light markdown */
+.prose-aerara h2 { font-family: var(--font-serif); font-size: 1.5rem; margin: 1.6rem 0 .6rem; }
+.prose-aerara h3 { font-weight: 600; margin: 1.1rem 0 .3rem; }
+.prose-aerara p { margin: .5rem 0; line-height: 1.65; }
+.prose-aerara ul { list-style: disc; padding-left: 1.25rem; margin: .4rem 0; }
+.prose-aerara li { margin: .2rem 0; line-height: 1.55; }
+.prose-aerara blockquote { border-left: 2px solid var(--color-clay); padding-left: .8rem; color: var(--color-ink-soft); margin: .6rem 0; }
+.prose-aerara em { color: var(--color-ink-soft); }
