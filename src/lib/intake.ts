@@ -5,23 +5,31 @@ export type IntakeResponse = { questionId: string; label: string; answer: string
 
 export const AERARA_FORM_ID = "vXDAE8";
 
-/** Question IDs from the live form, grouped into advisor-facing sections. Unknown IDs fall into "Other". */
+/** Tally page order, including IDs retained from earlier form versions. */
 export const SECTIONS: { key: string; title: string; ids: string[]; sensitive?: boolean }[] = [
   { key: "identity", title: "Client identity", ids: ["5EY2aZ", "dQoPJd", "YVbd7W"] },
-  { key: "birth", title: "Birth details (private)", ids: ["D0oeRN", "lVjR8N", "R8QLq4"], sensitive: true },
-  { key: "story", title: "Business story & purpose", ids: ["olZO8O", "GYV0OL", "N8x02j"] },
-  { key: "offer", title: "Offerings & ideal customers", ids: ["O8Z0xY", "Voa8WM"] },
-  { key: "vision", title: "Vision, season & goals", ids: ["P8N0ZB", "r2QE82", "zWAe50"] },
-  { key: "values", title: "Values & boundaries", ids: ["4PYjlA"] },
-  { key: "challenges", title: "Challenges & constraints", ids: ["jGrx8J", "E8G0oB", "2OYr9D", "x97Z8v"] },
+  { key: "birth", title: "Birth details", ids: ["D0oeRN", "lVjR8N", "R8QLq4"], sensitive: true },
   {
-    key: "wheelhouse", title: "Wheelhouse & delegation",
-    ids: ["R8QLqj", "olZO8x", "GYV0Ok", "O8Z0xg", "Voa8Wy", "P8N0Ze", "E8G0or", "r2QE8R", "4PYjlY", "jGrx84", "2OYr99", "ZPAJbB", "x97Z85"],
+    key: "story", title: "Your story",
+    ids: ["olZO8O", "O8Z0xY", "Voa8WM", "4PYjlA", "jGrx8J", "GYV0OL", "N8x02j", "P8N0ZB", "r2QE82", "E8G0oB", "2OYr9D", "x97Z8v"],
   },
-  { key: "brand", title: "Brand identity", ids: ["qjqP89", "Q8q0NG", "92YlAV", "e9GEgk", "Wl60av", "aZ1Gpb", "6rYxEJ", "74YZrR"] },
-  { key: "tech", title: "Website & technology", ids: ["bNMOQZ", "M825pA", "B8YBWK", "kO4ZBe", "vqa25D", "1GYEol"] },
+  {
+    key: "wheelhouse", title: "Your wheelhouse",
+    ids: ["R8QLqj", "olZO8x", "GYV0Ok", "O8Z0xg", "Voa8Wy", "P8N0Ze", "E8G0or", "r2QE8R", "x97Z85", "4PYjlY", "jGrx84", "2OYr99", "ZPAJbB"],
+  },
+  {
+    key: "brand", title: "Your brand",
+    ids: ["qjqP89", "e9GEgk", "6rYxEJ", "Q8q0NG", "92YlAV", "Wl60av", "aZ1Gpb", "74YZrR"],
+  },
+  {
+    key: "tech", title: "Your tools",
+    ids: ["bNMOQZ", "B8YBWK", "1GYEol", "M825pA", "kO4ZBe", "vqa25D"],
+  },
   { key: "ops", title: "Operations", ids: ["AWY8ez", "K840KV", "L5j0Lp", "p4NVpB", "J8r0vR"] },
-  { key: "soul", title: "Optional: astrology, Kabbalah, Human Design", ids: ["gWV464", "yebD5x", "XO7qPY", "8jYe4P", "0oYPRj"] },
+  {
+    key: "soul", title: "Optional reflections",
+    ids: ["gWV464", "zWAe50", "yebD5x", "XO7qPY", "8jYe4P", "0oYPRj"], sensitive: true,
+  },
 ];
 
 /** Wheelhouse dropdown questions (activity areas). */
@@ -56,12 +64,12 @@ export function spiritualConsent(responses: IntakeResponse[]): boolean {
 
 // ── Normalizers for the three ways a submission can arrive ──
 
-type ApiQuestion = { id: string; label: string };
+type ApiQuestion = { id: string; label: string | null };
 type ApiSubmission = { id: string; isCompleted?: boolean; submittedAt?: string; responses: { questionId: string; answer: unknown }[] };
 
 /** Tally REST API / export shape: { questions, submissions } */
 export function fromApi(questions: ApiQuestion[], s: ApiSubmission) {
-  const labels = new Map(questions.map((q) => [q.id, decode(q.label)]));
+  const labels = new Map(questions.map((q) => [q.id, decode(q.label ?? q.id)]));
   return {
     submissionId: s.id,
     submittedAt: s.submittedAt ?? null,
@@ -108,11 +116,12 @@ export function sectioned(responses: IntakeResponse[]) {
   const used = new Set<string>();
   const out = SECTIONS.map((s) => ({
     ...s,
-    items: s.ids.map((id) => {
+    items: s.ids.flatMap((id) => {
       used.add(id);
-      return byId.get(id) ?? { questionId: id, label: "(question not in this submission)", answer: null };
+      const response = byId.get(id);
+      return response ? [response] : [];
     }),
-  }));
+  })).filter((s) => s.items.length > 0);
   const other = responses.filter((r) => !used.has(r.questionId));
   if (other.length) out.push({ key: "other", title: "Other", ids: other.map((o) => o.questionId), items: other });
   return out;

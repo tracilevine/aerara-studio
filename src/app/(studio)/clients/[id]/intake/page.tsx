@@ -34,7 +34,7 @@ export default async function Intake({ params, searchParams }: { params: Promise
       <div className="card flex flex-wrap items-center justify-between gap-4 p-5">
         <div className="text-sm">
           <p>Submitted {fmtDateTime(sub.submitted_at)} · Tally <code>{sub.tally_submission_id}</code></p>
-          <p className="text-ink-soft">{responses.length} answers · {missing} blank{prev ? " · compared with previous submission" : ""}</p>
+          <p className="text-ink-soft">{responses.length - missing} answers{missing > 0 ? ` · ${missing} blank` : ""}{prev ? " · compared with previous submission" : ""}</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           {subs.length > 1 && <span className="flex gap-1 text-xs">{subs.map((x, i) => <Link key={x.id} href={`${P}?s=${x.id}`} className={`rounded-full px-2 py-1 ${i === idx ? "bg-lavender/60" : "text-ink-soft"}`}>v{subs.length - i}</Link>)}</span>}
