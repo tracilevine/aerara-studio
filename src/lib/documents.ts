@@ -59,11 +59,13 @@ export async function buildDocument(db: SupabaseClient, clientId: string, type: 
   let md = "";
 
   if (type === "assessment") {
-    const { data: a } = await db.from("assessments").select("content,status").eq("client_id", clientId)
-      .order("created_at", { ascending: false }).limit(1).maybeSingle();
+    let query = db.from("assessments").select("content").eq("client_id", clientId);
+    if (forClient) query = query.eq("status", "approved");
+    const { data: a, error } = await query.order("created_at", { ascending: false }).limit(1).maybeSingle();
+    if (error) throw new Error("Could not load the assessment.");
+    if (!a?.content && forClient) throw new Error("Approve an assessment before creating a client-facing copy.");
     if (!a?.content) md = "_No assessment yet. Generate one from the Assessment tab._";
     else {
-      if (forClient && a.status !== "approved") md += "> This assessment has not been approved yet. Approve it before sharing.\n\n";
       const c = a.content as AssessmentContent;
       for (const [k, t] of SECTION_TITLES) {
         if (k === "soul" && (!c.sections.soul || !priv?.consent_spiritual)) continue;
