@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { notFound, redirect } from "next/navigation";
 import { createClient, getAdvisor } from "@/lib/supabase/server";
 import { Markdown } from "@/components/markdown";
@@ -25,8 +26,10 @@ export default async function PrintDoc({ params }: { params: Promise<{ docId: st
       </div>
       <article className="sheet mx-auto my-8 w-[8.5in] bg-ivory shadow-sm print:my-0">
         <section className="brand-gradient relative flex h-[11in] flex-col justify-between p-[0.9in]" style={{ breakAfter: "page" }}>
-          {/* Temporary text wordmark. Replace with the official mountain logo: <img src="/aerara-logo.svg" /> */}
-          <div><p className="font-serif text-3xl tracking-[0.32em]">AERARA</p><p className="mt-1 text-[10px] uppercase tracking-[0.28em] text-mauve">For the System</p></div>
+          <div>
+            <Image src="/aerara-mountain-logo.png" width={1673} height={940} alt="AERARA" className="h-auto w-44" loading="eager" unoptimized />
+            <p className="mt-1 text-[10px] uppercase tracking-[0.28em] text-mauve">For the System</p>
+          </div>
           <div>
             <p className="label">{d.audience === "client" ? "Prepared for" : "Internal · advisor only"}</p>
             <p className="mt-2 font-serif text-2xl">{c?.name}{c?.business_name ? ` · ${c.business_name}` : ""}</p>

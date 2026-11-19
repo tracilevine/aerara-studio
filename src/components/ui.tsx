@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import React from "react";
 
@@ -55,10 +56,9 @@ export function Progress({ value }: { value: number }) {
 }
 
 export function Wordmark({ size = "md" }: { size?: "md" | "lg" }) {
-  // Temporary text wordmark until the official AERARA mountain logo file is supplied (public/aerara-logo.svg).
   return (
     <Link href="/" className="block leading-none">
-      <span className={`font-serif tracking-[0.32em] ${size === "lg" ? "text-4xl" : "text-xl"}`}>AERARA</span>
+      <Image src="/aerara-mountain-logo.png" width={1673} height={940} alt="AERARA" className={`inline-block h-auto ${size === "lg" ? "w-44" : "w-28"}`} />
       <span className="mt-1 block text-[10px] uppercase tracking-[0.28em] text-mauve">System Advisory Studio</span>
     </Link>
   );
